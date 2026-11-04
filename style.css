@@ -115,3 +115,45 @@ h1,h2,h3{margin:0;font-weight:500;letter-spacing:1px}
 @media (orientation:portrait){.bar{width:44px}.hud{gap:3px;flex-wrap:wrap}.meter{font-size:11px}.meter img{width:20px;height:20px}.day{font-size:12px}
  .z img{height:16vh}.zs{bottom:3%;right:1%}.spot{width:22vw}.roomtitle{top:62px}}
 .roomtitle{z-index:2;background:#f6ead0e0;border:1px solid #b89a6a;padding:3px 8px;border-radius:4px}
+/* v0.3 */
+#map svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+#map line{stroke:#7a5530;stroke-width:.55;stroke-dasharray:1.4 1;opacity:.75;vector-effect:non-scaling-stroke;stroke-width:3px}
+#map line.act{stroke:#e08a1a;opacity:1}
+#map line.hz{stroke:#c0392b;opacity:1}
+#map.night{filter:brightness(.62) saturate(.75) hue-rotate(-12deg) contrast(1.05)}
+.rlab{position:absolute;transform:translate(-50%,-50%);font-size:10px;background:#fff3dcd8;border:1px solid #b89a6a;border-radius:8px;padding:0 5px;pointer-events:none;color:#5a3d1f}
+.rlab.hz{background:#ffd9d2;color:#9b2a1a;border-color:#c0392b}
+.node span i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;vertical-align:0}
+.node img.safeh{width:54px;height:50px}
+.trd{position:absolute;width:30px;transform:translate(-50%,-100%);pointer-events:none;filter:drop-shadow(0 2px 3px #3a200c)}
+.swipe{position:absolute;left:50%;bottom:74px;transform:translateX(-50%);z-index:6;background:#f6ead0ee;border:1px solid #b89a6a;border-radius:14px;padding:3px 12px;font-size:12px;pointer-events:none;animation:sw 1.6s infinite}
+@keyframes sw{50%{transform:translateX(calc(-50% + 8px))}}
+.btn.hot2{background-image:url(img/btn_hot.webp);filter:hue-rotate(70deg) saturate(.9);font-weight:600}
+.mapbar{flex-wrap:wrap}.mapbar .btn{min-width:78px;padding:6px 10px}
+.odds{font-size:12px;text-align:center;line-height:1.3}
+.bd{position:absolute;top:1px;left:2px;font-size:9px;font-weight:700;padding:0 3px;border-radius:3px;line-height:13px}
+.bd.up{background:#2f8a3a;color:#fff}.bd.junk{background:#8a3a2a;color:#fff}.bd.part{background:#b37400;color:#fff}.bd.fav{left:auto;right:2px;background:#ffd34a;color:#3b2a1a}
+.cell.sel{outline:3px solid #e08a1a;outline-offset:-3px;filter:brightness(1.1)}
+.cell.rx{box-shadow:inset 0 0 0 2px #a08a6a66}
+.row.tight{margin:0;gap:4px}.row.tight .btn{min-width:0;padding:5px 9px;font-size:12px}
+.bench{max-width:min(96vw,640px);text-align:left}
+.bhead{display:flex;gap:10px;align-items:center}.bhead img{width:90px}.bhead img.tport{width:80px}
+.blist{display:flex;flex-direction:column;gap:5px;margin:8px 0;max-height:42vh;overflow:auto}
+.brow{display:flex;gap:8px;align-items:center;background:#fff6e255;border-radius:6px;padding:4px}
+.brow .cell{width:48px;flex:none}.brow .bt{flex:1;font-size:13px}.brow .btn{min-width:0;padding:6px 10px}
+.bi{width:22px;height:22px;object-fit:contain;vertical-align:middle;margin-right:4px}
+.bench .row .btn{min-width:0;padding:6px 10px;font-size:13px}
+.hist{font-size:12px;opacity:.9;margin-top:4px}
+.meter.warn span{color:#ff9a7a;font-weight:bold}
+.coach{position:fixed;left:50%;bottom:16%;transform:translateX(-50%);z-index:30;max-width:min(92vw,460px);background:#fff4dcf5;border:2px solid #e0a04a;border-radius:8px;padding:8px 12px;font-family:Elite;font-size:13px;box-shadow:0 4px 14px #3a200c66}
+.coach b{font-family:Osw;color:#b8650f;margin-right:4px}.coach small{display:block;text-align:right;opacity:.6;font-size:10px}
+.spot.left{opacity:.85;animation:glow 2s infinite}
+.z b{bottom:auto;top:-14px;font-size:10px;white-space:nowrap;padding:0 4px}
+.wsel button{background:#f3e4c4;border:1px solid #b89a6a}
+.spot{width:min(26vh,120px)}
+.gear{overflow:auto}
+@media (orientation:landscape){.inv .grid{max-height:none;overflow:visible}}
+.ghead{display:flex;align-items:center;justify-content:space-between}.ghead .btn{min-height:36px;padding:4px 14px}
+.z b{top:-26px;left:50%;right:auto;transform:translateX(-50%);white-space:nowrap;text-align:center}
+.z b .awk{color:#b3321f;font-style:normal}
+@media (orientation:portrait){#mapwrap{display:flex;align-items:center;background:url(img/bg_panel.jpg) center/256px}#map{height:60vh;min-width:0;flex:none}.hud .day{width:100%;text-align:right}}

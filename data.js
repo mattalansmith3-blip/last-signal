@@ -17,7 +17,7 @@ shotgun:{n:'Pump Shotgun',s:'primary',t:2,dmg:44,nz:34,am:'shells',acc:10},
 smg:{n:'SMG',s:'primary',t:3,dmg:20,nz:28,am:'ammo9',burst:2},
 hunting:{n:'Hunting Rifle',s:'primary',t:3,dmg:50,nz:30,am:'ammo762',acc:12},
 rifle:{n:'Assault Rifle',s:'primary',t:4,dmg:32,nz:30,am:'ammo762',burst:2},
-crossbow:{n:'Crossbow',s:'primary',t:4,dmg:40,nz:4},
+crossbow:{n:'Crossbow',s:'primary',t:3,dmg:34,nz:5,am:'bolts',acc:6},
 cap:{n:'Ball Cap',s:'head',t:0,ar:1,st:1},
 moto_helmet:{n:'Moto Helmet',s:'head',t:1,ar:4,st:-1},
 tac_helmet:{n:'Tactical Helmet',s:'head',t:3,ar:7},
@@ -41,6 +41,8 @@ medkit:{n:'Medkit',u:'heal',t:2,v:55},
 ammo9:{n:'9mm Rounds',a:1,t:0,q:[6,14]},
 shells:{n:'Shotgun Shells',a:1,t:1,q:[3,7]},
 ammo762:{n:'Rifle Rounds',a:1,t:2,q:[4,9]},
+bolts:{n:'Crossbow Bolts',a:1,t:1,q:[3,6]},
+scrap:{n:'Scrap',sc:1,t:0,q:[2,5]},
 molotov:{n:'Molotov',u:'bomb',t:2},
 lockpick:{n:'Lockpicks',u:'tool',t:1},
 keycard:{n:'Security Keycard',u:'tool',t:2},
@@ -50,20 +52,22 @@ coil:{n:'Antenna Coil',p:1,t:3},
 battery:{n:'Heavy Battery',p:1,t:3},
 walkie:{n:'Walkie-Talkie',p:1,t:3},
 };
-const ZT={walker:{n:'Walker',hp:30,dmg:9,hit:55,img:'z_walker'},runner:{n:'Fresh Runner',hp:24,dmg:12,hit:66,img:'z_runner'},crawler:{n:'Crawler',hp:16,dmg:7,hit:50,img:'z_crawler'}};
+const ZT={walker:{n:'Walker',hp:30,dmg:9,hit:55,img:'z_walker'},runner:{n:'Fresh Runner',hp:24,dmg:11,hit:60,img:'z_runner'},crawler:{n:'Crawler',hp:16,dmg:7,hit:50,img:'z_crawler'}};
 const CT={crate:{n:'Supply Crate',w:[55,30,12,3,0],k:[2,4],nz:6},lockbox:{n:'Lockbox',w:[15,40,32,11,2],k:[2,4],nz:4,lock:'lockpick'},safe:{n:'Wall Safe',w:[0,20,42,28,10],k:[3,5],nz:3,lock:'keycard'},chest:{n:'Old Chest',w:[0,10,35,38,17],k:[3,6],nz:5}};
 // map coords in % of 16:9 map image
 const LOC={
 suburbs:{n:'Riverdale Suburbs',bg:'suburbs',x:22,y:74,d:0,bias:['food','melee','body','legs','back'],rooms:['Your Street','Neighbor\'s Garage','Cul-de-sac House','Corner Store','Basement Shelter'],z:['walker','crawler']},
-hospital:{n:'St. Jude Hospital',bg:'hospital',x:18,y:32,d:2,bias:['heal','heal','food','tool'],rooms:['ER Lobby','Triage Ward','Pharmacy','Surgery Wing','Records Vault'],z:['walker','runner','crawler']},
-gunstore:{n:'Riverside Guns',bg:'gunstore',x:48,y:52,d:1,bias:['ammo','secondary','primary','melee'],rooms:['Showroom','Back Counter','Storage Room','Range Lane','Owner\'s Office'],z:['walker','runner']},
+hospital:{n:'St. Jude Hospital',bg:'hospital',x:18,y:32,d:2,bias:['food','heal','heal','food','tool'],rooms:['ER Lobby','Triage Ward','Pharmacy','Surgery Wing','Records Vault'],z:['walker','runner','crawler']},
+gunstore:{n:'Riverside Guns',bg:'gunstore',x:48,y:52,d:1,bias:['food','ammo','secondary','primary','melee'],rooms:['Showroom','Back Counter','Storage Room','Range Lane','Owner\'s Office'],z:['walker','walker','crawler','runner']},
 downtown:{n:'Downtown',bg:'downtown',x:54,y:30,d:2,bias:['body','head','food','back','primary'],rooms:['Main Street','Mall Atrium','Sporting Goods','Food Court','Bank Vault'],z:['runner','walker','walker']},
-police:{n:'Precinct 17',bg:'police',x:70,y:50,d:3,bias:['head','body','secondary','ammo','tool'],rooms:['Front Desk','Bullpen','Locker Room','Holding Cells','Armory Cage'],z:['walker','runner','runner']},
-harbor:{n:'Old Harbor',bg:'harbor',x:82,y:80,d:2,bias:['tool','ammo','back','legs'],rooms:['Dock Gate','Container Yard','Crane Base','Warehouse','Harbor Office'],z:['walker','crawler','runner']},
+police:{n:'Precinct 17',bg:'police',x:70,y:50,d:3,bias:['food','head','body','secondary','ammo','tool'],rooms:['Front Desk','Bullpen','Locker Room','Holding Cells','Armory Cage'],z:['walker','runner','runner']},
+harbor:{n:'Old Harbor',bg:'harbor',x:82,y:80,d:2,bias:['food','tool','ammo','back','legs'],rooms:['Dock Gate','Container Yard','Crane Base','Warehouse','Harbor Office'],z:['walker','crawler','runner']},
 tower:{n:'Echo Hill Tower',bg:'tower',x:80,y:26,d:3,bias:['ammo','heal'],rooms:['Access Road','Transmitter Shack'],z:['walker','runner'],tower:1},
 };
 const EDGES=[['suburbs','gunstore',3],['suburbs','hospital',4],['hospital','downtown',3],['gunstore','downtown',3],['gunstore','police',3],['downtown','police',2],['gunstore','harbor',4],['police','harbor',3],['police','tower',4],['harbor','tower',5]];
-const KITS=[{n:'Survivor',need:0,items:['knife','bandage','can','hoodie','jeans','schoolbag']},
+const KITS=[{n:'Survivor',need:0,items:['knife','bandage','can','bar','hoodie','jeans','schoolbag']},
 {n:'Handyman',need:6,items:['crowbar','bandage','can','bar','hoodie','cargo','schoolbag']},
 {n:'Off-duty Cop',need:15,items:['baton','pistol','ammo9','bandage','leather','jeans','schoolbag']},
 {n:'Prepper',need:30,items:['machete','bandage','pills','can','can','leather','cargo','hikingpack','lockpick']}];
+const RECIPES=[{id:'bandage',n:'Bandage',c:3},{id:'bolts',n:'6 Bolts',c:4,q:6},{id:'lockpick',n:'Lockpicks',c:5},{id:'molotov',n:'Molotov',c:8},{id:'medkit',n:'Medkit',c:12}];
+const SAFE={bar:{n:'Barricades',c:[10,18],d:'Safer naps at home'},bed:{n:'Proper Bed',c:[12,20],d:'Rest heals more at home'},garden:{n:'Garden',c:[14],d:'A fresh meal every rest at home'},radio:{n:'Ham Radio',c:[18],d:'Shows how many radio parts are left at each place'}};
