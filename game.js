@@ -56,8 +56,10 @@ function genRooms(k){const L=LOC[k];return L.rooms.map((nm,i)=>{const depth=i+L.
    for(let j=0;j<nc;j++){const ct=i===L.rooms.length-1&&j===0?(Math.random()<.5?'safe':'chest'):pick(i<2?['crate','crate','lockbox']:['crate','lockbox','lockbox','safe','chest']);spots.push({ct,open:0,loot:genLoot(ct,k,depth)})}
    const nz=k==='suburbs'&&i===0?0:R(i<2?(L.d?1:0):1,Math.min(4,1+Math.floor((i+L.d)/1.6)));
    return {n:nm,spots,z:Array.from({length:nz},()=>mkZ(pick(L.z),L.d)),clock:R(5,8),sp:0}})}
-function newRun(kit){uid=1;const K=KITS[kit];
- G={v:3,day:1,hour:8,hp:100,hun:10,noise:0,at:'suburbs',kills:0,searched:0,started:Date.now(),eq:{},inv:[],locs:{},hordes:[],installed:0,log:[],kit,scrap:0,cells:3,safe:{},wsel:'melee',tt:0};
+const _mr=Math.random;Math.random=()=>{if(G&&G.daily&&!G.over){let t=G.rs=(G.rs+0x6D2B79F5)|0;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296}return _mr()};
+const today=()=>{const d=new Date();return d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate()};
+function newRun(kit,daily){uid=1;const K=KITS[kit];G=null;
+ G={daily:daily?today():0,rs:daily?today():0,v:3,day:1,hour:8,hp:100,hun:10,noise:0,at:'suburbs',kills:0,searched:0,started:Date.now(),eq:{},inv:[],locs:{},hordes:[],installed:0,log:[],kit,scrap:0,cells:3,safe:{},wsel:'melee',tt:0};
  for(const id of K.items){const it=mk(id);const d=ITEMS[id];if(d.s&&!G.eq[d.s])G.eq[d.s]=it;else G.inv.push(it)}
  const keys=Object.keys(LOC);
  for(const k of keys){const L=LOC[k];const rooms=genRooms(k);
@@ -105,8 +107,8 @@ function showTitle(){const has=localStorage.getItem('ls_run');
  <div class="menu">${has?'<button class="btn hot" id="cont">Continue Run</button>':''}<button class="btn ${has?'':'hot'}" id="new">New Run</button></div>
  <div class="legacy">Journal: ${META.pts} pts · Runs ${META.runs} · Best signal ${META.best}/12 · Rescues ${META.wins} · 🏆 ${Object.keys(META.ach||{}).length}/${Object.keys(ACH).length}${hist?'<div class="hist">'+hist+'</div>':''}</div></div>`;
  if(has)$('#cont').onclick=()=>{G=JSON.parse(has);uid=1e6+Date.now()%1e6;resume()};
- $('#new').onclick=()=>ov(`<h2>Choose your start</h2><p>Each run writes to your journal and unlocks better starts.</p><div class="row">${kits}</div><div class="row"><button class="btn" id="x">Back</button></div>`);
- $('#ov').onclick=e=>{const k=e.target.closest('[data-kit]');if(k&&!k.disabled){closeOv();newRun(+k.dataset.kit)}if(e.target.id==='x')closeOv()};}
+ $('#new').onclick=()=>ov(`<h2>Choose your start</h2><p>Each run writes to your journal and unlocks better starts.</p><div class="row">${kits}</div><div class="row"><button class="btn hot2" id="dly">Daily Signal<small>same map & loot for everyone today · Survivor kit</small></button><button class="btn" id="x">Back</button></div>`);
+ $('#ov').onclick=e=>{const k=e.target.closest('[data-kit]');if(k&&!k.disabled){closeOv();newRun(+k.dataset.kit)}if(e.target.closest('#dly')){closeOv();newRun(0,1)}if(e.target.id==='x')closeOv()};}
 function resume(){if(G.v!==3){G.scrap=G.scrap||0;G.cells=G.cells||3;G.safe=G.safe||{};G.v=3;if(!G.trader)moveTrader(true)}
  if(G.amb||G.scr==='enc')renderEnc();else showMap()}
 // ---------- map
@@ -347,14 +349,14 @@ function showSafe(){const rows=Object.entries(SAFE).map(([k,s])=>{const lv=G.saf
 function install(){const ps=G.inv.filter(i=>ITEMS[i.id].p);if(G.installed>=12)return broadcast();if(!ps.length)return toast('No radio parts in your pack');
  G.installed+=ps.length;G.inv=G.inv.filter(i=>!ITEMS[i.id].p);META.best=Math.max(META.best,G.installed);saveMeta();addLog(`You wire ${ps.length} part(s) into the transmitter. Signal ${G.installed}/12.`,'gold');toast(`Signal ${G.installed}/12`);
  if(G.installed>=12)addLog('The transmitter hums to life. Broadcasting will draw every shambler on the hill. Be ready.','gold');save();renderEnc()}
-function broadcast(){ov(`<h2>Broadcast?</h2><p>You will have to hold the shack against 4 waves of the dead until the rescue chopper answers. Make sure you're armed and healed.</p><div class="row"><button class="btn hot" id="b">Send the Signal</button><button class="btn" id="x">Not yet</button></div>`);
+function broadcast(){ov(`<h2>Broadcast?</h2><p>You will have to hold the shack against 4 waves of the dead until the rescue chopper answers. Make sure you're armed and healed.</p><p>You're at <b style="color:${G.hp>=70?'#3a8a2a':'#c0392b'}">${G.hp} HP</b>${G.hp<70?' — 70+ recommended. Rest or patch up first.':' — looking good.'}</p><div class="row"><button class="btn hot" id="b">Send the Signal</button><button class="btn" id="x">Not yet</button></div>`);
  $('#ov').onclick=e=>{if(e.target.id==='x')closeOv();if(e.target.closest('#b')){closeOv();G.final=1;wave()}}}
 function wave(){const l=G.locs.tower;const room=l.rooms[l.cur];if(G.final>4)return win();addLog(`WAVE ${G.final}/4: they come up through the wildflowers.`,'bad');room.z=Array.from({length:1+Math.ceil(G.final/1.5)},()=>Object.assign(mkZ(pick(['walker','runner','crawler','walker'])),{aw:1}));room.clock=99;room.wave=1;save();renderEnc()}
 // ---------- end
 function die(why){G.over=1;const pts=G.installed*2+G.day+Math.floor(G.kills/5)+Math.floor(G.searched/6);const before=KITS.filter(k=>k.need<=META.pts).length;META.pts+=pts;const nu=KITS.filter(k=>k.need<=META.pts).slice(before);
- META.journal.unshift(`Day ${G.day}: ${why}`);META.journal=META.journal.slice(0,6);META.hist.unshift(`Died day ${G.day} · signal ${G.installed}/12 · ${G.kills} kills`);META.hist=META.hist.slice(0,5);saveMeta();localStorage.removeItem('ls_run');
+ META.journal.unshift(`Day ${G.day}: ${why}`);META.journal=META.journal.slice(0,6);META.hist.unshift(`${G.daily?'Daily · ':''}Died day ${G.day} · signal ${G.installed}/12 · ${G.kills} kills`);META.hist=META.hist.slice(0,5);saveMeta();localStorage.removeItem('ls_run');
  ov(`<h2 style="color:#c0392b">YOU DIED</h2><p>${why}</p><p>Signal ${G.installed}/12 · Kills ${G.kills} · Containers ${G.searched}</p><p class="gold">+${pts} journal points (total ${META.pts})</p>${nu.length?`<p class="gold">New start unlocked: ${nu.map(k=>k.n).join(', ')}!</p>`:`<p style="font-size:12px">${(KITS.find(k=>k.need>META.pts)||{n:''}).n?'Next start at '+KITS.find(k=>k.need>META.pts).need+' pts':''}</p>`}<div class="row"><button class="btn hot" id="t">Continue</button></div>`);$('#ov').onclick=e=>{if(e.target.id==='t'){closeOv();showTitle()}}}
-function win(){G.over=1;const mins=Math.round((Date.now()-G.started)/60000);META.wins++;META.pts+=40;META.best=12;META.hist.unshift(`RESCUED day ${G.day} · ${G.kills} kills`);META.hist=META.hist.slice(0,5);saveMeta();localStorage.removeItem('ls_run');
+function win(){G.over=1;const mins=Math.round((Date.now()-G.started)/60000);META.wins++;META.pts+=40;META.best=12;META.hist.unshift(`${G.daily?'Daily · ':''}RESCUED day ${G.day} · ${G.kills} kills`);META.hist=META.hist.slice(0,5);saveMeta();localStorage.removeItem('ls_run');
  ov(`<h2 style="color:#b8650f">SOMEONE HEARD YOU</h2><img src="img/bg_title.jpg" style="width:100%;max-height:34vh;object-fit:cover;border-radius:4px"><p>A voice answers. Then rotor blades over Echo Hill. You made it on day ${G.day}, and nobody even asked for a timesheet.</p><p>Kills ${G.kills} · Containers ${G.searched} · ${mins} min</p><p>+40 journal points</p><div class="row"><button class="btn hot" id="t">Title</button></div>`);$('#ov').onclick=e=>{if(e.target.id==='t'){closeOv();showTitle()}}}
 window.__G=()=>G;
 showTitle();
