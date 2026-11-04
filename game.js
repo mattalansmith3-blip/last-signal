@@ -70,7 +70,7 @@ function newRun(kit,daily){uid=1;const K=KITS[kit];G=null;
  moveTrader(true);
  META.runs++;saveMeta();save();showMap();addLog('Day one of the rest of your life. No alarm, no commute, no inbox. The old radio crackles: "...Echo Hill tower... twelve parts... we listen until day '+DEADLINE+'..."','gold');renderLogOnly()}
 function renderLogOnly(){}
-function mkZ(t,dd){const d=dd!=null?dd:(G&&G.at?LOC[G.at].d:0);return {t,hp:Math.round(ZT[t].hp*(1+d*.15+(G?G.day*.035:0))),aw:0}}
+function mkZ(t,dd){const d=dd!=null?dd:(G&&G.at?LOC[G.at].d:0);const hp=Math.round(ZT[t].hp*(1+d*.15+(G?G.day*.035:0)));return {t,hp,mx:hp,aw:0}}
 function addLog(t,c){const l=G.log[G.log.length-1];if(l&&l[0]===t)return;G.log.push([t,c||'']);if(G.log.length>60)G.log.shift()}
 // ---------- trader
 function moveTrader(first){const opts=Object.keys(LOC).filter(k=>!LOC[k].tower&&(first?k==='gunstore':k!==(G.trader&&G.trader.at)));const at=first?'gunstore':pick(opts);
@@ -171,16 +171,27 @@ function enterLoc(){closeOv();const l=G.locs[G.at];l.visited=1;if(l.cur>=l.rooms
  tip('enc','Unaware zombies take double damage from quiet weapons (sneak attack). Guns are loud and wake the room. Shove buys you a turn.')}
 function weapons(){const w=[];if(eq('melee'))w.push(['melee',eq('melee')]);else w.push(['melee',{id:'fists',r:0}]);if(eq('secondary'))w.push(['secondary',eq('secondary')]);if(eq('primary'))w.push(['primary',eq('primary')]);return w}
 function wStats(slot){const it=slot==='melee'&&!eq('melee')?null:eq(slot);if(!it)return {dmg:5,acc:70,nz:1,burst:1,am:null,n:'Fists'};const d=ITEMS[it.id];return {dmg:st(it,'dmg'),acc:(d.am?74:68)+(d.acc||0)+it.r*3,nz:d.nz,burst:d.burst||1,am:d.am,n:iname(it)}}
-function hitPct(z,slot){return clamp(wStats(slot).acc+(z.aw?0:12),5,97)}
+function zd(z){if(z.d==null)z.d=z.aw?R(2,3):R(3,5);if(z.ln==null)z.ln=R(0,2);return z.d}
+function tgtZ(room){if(!room.z.length)return null;let i=G.tgt|0;if(i>=room.z.length||i<0){i=0;room.z.forEach((z,j)=>{if(zd(z)<zd(room.z[i]))i=j});G.tgt=i}return room.z[i]}
+function hitPct(z,slot){const w=wStats(slot);return clamp(w.acc+(z.aw?0:12)+(G.br&&!w.am?15:0)-(w.am?Math.max(0,zd(z)-2)*4:0),5,97)}
+function meleeFar(z,slot){return !wStats(slot).am&&z.aw&&zd(z)>1}
 function hitsToKill(z,slot){const w=wStats(slot);const m=(!z.aw&&!w.am)?2:1;return Math.max(1,Math.ceil(z.hp/(w.dmg*m*w.burst)))}
-function incoming(room){const ar=armor();return room.z.filter(z=>z.aw&&!z.stun).reduce((a,z)=>a+ZT[z.t].hit/100*Math.max(1,zdmg(z)-ar*.35),0)}
+function incoming(room){const ar=armor();return room.z.filter(z=>z.aw&&zd(z)<=1&&!z.stun).reduce((a,z)=>a+ZT[z.t].hit/100*Math.max(1,zdmg(z)-ar*.35),0)}
 function zdmg(z){return ZT[z.t].dmg*(1+LOC[G.at].d*.15+G.day*.04)}
 function sneakOdds(room){if(G.amb)return clamp(45+stealth()*5-room.z.length*8,5,90);return clamp(80+stealth()*6-room.z.filter(z=>z.aw).length*28-room.z.filter(z=>!z.aw).length*8,5,95)}
 function renderEnc(fx){const room=curRoom();const L=LOC[G.at];const l=G.locs[G.at];
  if(!weapons().some(w=>w[0]===G.wsel))G.wsel='melee';
- const zs=room.z.map((z,i)=>`<div class="z ${z.aw?'aw':''} ${fx&&fx.hit===i?'hit':''}" data-z="${i}"><img src="${IMG(ZT[z.t].img)}"><b>${ZT[z.t].n} ${Math.max(0,Math.round(z.hp))}hp<br>${z.stun?'dazed':z.aw?'<i class=awk>aware</i>':'unaware'}</b></div>`).join('');
+ const tz=tgtZ(room);fx=fx||{};const zx=(d,ln)=>36+(d-1)*14+(ln||0)*(d===1?14:3),zb=ln=>2+ln*7,zsc=d=>1-(d-1)*.09;
+ const zpos=(d,ln)=>`left:${zx(d,ln)}%;bottom:${zb(ln)}%;--s:${zsc(d)};z-index:${20-d*3+ln}`;
+ const grp={};room.z.forEach(z=>{const d=zd(z);grp[d]=(grp[d]||0);z.ln=grp[d]++});
+ const order=room.z.map((z,i)=>i).sort((a,b)=>zd(room.z[b])-zd(room.z[a]));
+ const zs=order.map(i=>{const z=room.z[i];const T=ZT[z.t];const on=z===tz;return `<div class="az ${z.aw?'aw':''} ${on?'tg':''} ${on&&fx.flash?'hit':''} ${z.stun?'dz':''}" data-z="${i}" style="${zpos(z.d,z.ln)}"><div class="zl">${on?`<b class="hp">${Math.round(hitPct(z,G.wsel))}%</b>`:''}<span class="bar"><i style="width:${clamp(z.hp/(z.mx||T.hp)*100,0,100)}%"></i></span>${T.n}${z.stun?' · dazed':z.aw?'':' · 💤'}</div><img src="${IMG(T.img)}"></div>`}).join('')
+  +(fx.dead||[]).map(k=>`<div class="az dying" style="${zpos(k.d||1,k.ln||0)}"><img src="${IMG(ZT[k.t].img)}"></div>`).join('')
+  +(fx.pops||[]).map(p=>`<div class="pop ${p.c}" style="left:${zx(p.d||1)+3}%;bottom:${zb(p.ln||0)+30}%">${p.t}</div>`).join('');
+ const hw=wStats(G.wsel);const heroImg=!hw.am?'hero_melee':G.wsel==='primary'?'hero_rifle':'hero_gun';
+ const marks=room.z.length?[1,2,3,4,5].map(d=>`<span class="mk" style="left:${zx(d)}%">${d===1?'melee':d}</span>`).join(''):'';
  const sp=room.spots.map((s,i)=>`<img class="spot ${s.open?(s.loot.length?'open left':'open'):'pulse'}" data-s="${i}" src="${IMG(s.ct+(s.open?'_open':''))}">`).join('');
- const t0=room.z[0];const ws=weapons().map(([s,it])=>{const w=wStats(s);return `<button data-w="${s}" class="${G.wsel===s?'on':''}"><img src="${it.id==='fists'?IMG('bandage'):IMG(it.id)}"><span>${w.n}<br>${w.am?ammoOf(w.am)+' '+(w.am==='bolts'?'bolts':'rds'):'quiet'}</span></button>`}).join('');
+ const t0=tz;const ws=weapons().map(([s,it])=>{const w=wStats(s);return `<button data-w="${s}" class="${G.wsel===s?'on':''}"><img src="${it.id==='fists'?IMG('bandage'):IMG(it.id)}"><span>${w.n}<br>${w.am?ammoOf(w.am)+' '+(w.am==='bolts'?'bolts':'rds'):'quiet'}</span></button>`}).join('');
  const inc=incoming(room);const ws0=wStats(G.wsel);
  const last=G.amb||l.cur>=l.rooms.length-1;const clear=!room.z.length;
  const logs=G.log.slice(-14).map(([t,c])=>`<p class="${c}">${t}</p>`).join('');
@@ -188,11 +199,11 @@ function renderEnc(fx){const room=curRoom();const L=LOC[G.at];const l=G.locs[G.a
  const odds=t0?`<div class="odds">Hit <b>${ammoOk?hitPct(t0,G.wsel):0}%</b> · ${Math.round(ws0.dmg*.8*((!t0.aw&&!ws0.am)?2:1))}–${Math.round(ws0.dmg*1.2*((!t0.aw&&!ws0.am)?2:1))}${ws0.burst>1?'×'+ws0.burst:''} dmg vs ${Math.round(t0.hp)}hp → <b>${hitsToKill(t0,G.wsel)} hit${hitsToKill(t0,G.wsel)>1?'s':''}</b><br>Incoming ~<b style="color:#c0392b">${inc.toFixed(1)}</b>/turn · Sneak <b>${sneakOdds(room)}%</b>${!t0.aw&&ws0.am?' · <span style="color:#b3321f">gunfire wakes the room</span>':''}</div>`:'';
  $('#app').innerHTML=`<div class="screen" id="enc">${hud()}<div class="scene" style="background-image:linear-gradient(#3a230f55,#0000 25%,#0000 75%,#3a230f66),url(img/${G.amb?'bg_road.jpg':roomBg(room.n,L.bg)});background-position:${G.amb?50:(l.cur*23)%100}% 50%">
  <div class="roomtitle">${G.amb?'Ambush!':L.n}<small>${room.n}${G.amb?'':' · room '+(l.cur+1)+'/'+l.rooms.length}${room.z.length&&!G.amb&&!room.wave?' · more arrive in '+room.clock+' turns':''}</small></div>
- <div class="spots">${sp}</div><div class="zs">${zs}</div></div>
+ ${room.z.length?'':`<div class="spots">${sp}</div>`}<div class="arena">${marks}<img class="heroF ${G._hurt?'hurt':''} ${fx.shot?'shoot':''}" src="img/${heroImg}.webp">${zs}</div></div>
  <div class="side panel"><div class="log" id="log">${logs}</div>
  ${room.z.length?`<div class="wsel">${ws}</div>${odds}`:''}
  <div class="acts">
- ${room.z.length?`<button class="btn hot" id="fight" ${ammoOk?'':'disabled'}>Fight<small>${ammoOk?ZT[t0.t].n:'no ammo'}</small></button><button class="btn" id="aim" ${ammoOk?'':'disabled'}>Aimed<small>−20% hit · ×1.8 dmg</small></button><button class="btn" id="shove">Shove<small>daze it, no damage</small></button>`:''}
+ ${room.z.length?`<button class="btn hot" id="fight" ${ammoOk?'':'disabled'}>${meleeFar(t0,G.wsel)?'Brace':ws0.am?'Shoot':'Swing'}<small>${!ammoOk?'no ammo':meleeFar(t0,G.wsel)?'too far · wait, +15%':ZT[t0.t].n+(t0.d>1?' · '+t0.d+' away':'')}</small></button>${G.inv.some(i=>i.id==='molotov')?'<button class="btn" id="molo">Molotov<small>burns a group</small></button>':''}<button class="btn" id="aim" ${ammoOk?'':'disabled'}>Aimed<small>−20% hit · ×1.8 dmg</small></button><button class="btn" id="shove">Shove<small>push back + daze</small></button>`:''}
  ${room.spots.some(s=>!s.open)?`<button class="btn ${room.z.length?'':'hot'}" id="search">Search<small>${room.spots.filter(s=>!s.open).length} container(s)</small></button>`:''}
  ${G.amb?`<button class="btn" id="run">Run<small>${sneakOdds(room)}% clean</small></button>`:(!last?(clear?`<button class="btn ${room.spots.some(s=>!s.open)?'':'hot'}" id="next">Next Room<small>${l.rooms[l.cur+1].n}</small></button>`:`<button class="btn" id="sneak">Sneak Past<small>${sneakOdds(room)}%</small></button>`):'')}
  ${L.tower&&!G.amb&&clear&&last?`<button class="btn hot" id="install" ${G.installed<12&&!parts?'disabled':''}>${G.installed>=12?'Broadcast':'Install Parts'}<small>${G.installed>=12?'hold the hill':parts+' in pack'}</small></button>`:''}
@@ -202,31 +213,40 @@ function renderEnc(fx){const room=curRoom();const L=LOC[G.at];const l=G.locs[G.a
  </div></div></div>`;
  const lg=$('#log');lg.scrollTop=lg.scrollHeight;
  const on=(id,f)=>{const e=$('#'+id);if(e)e.onclick=f};
- on('fight',()=>fight());on('aim',()=>fight(1));on('shove',shove);on('search',()=>search(room.spots.findIndex(s=>!s.open)));on('next',()=>{l.cur++;addLog('You move on: '+curRoom().n+'.');save();renderEnc()});on('back',()=>{l.cur--;save();renderEnc()});
+ on('fight',()=>fight());on('molo',molotov);on('aim',()=>fight(1));on('shove',shove);on('search',()=>search(room.spots.findIndex(s=>!s.open)));on('next',()=>{l.cur++;addLog('You move on: '+curRoom().n+'.');save();renderEnc()});on('back',()=>{l.cur--;save();renderEnc()});
  on('sneak',sneak);on('leave',leave);on('items',useMenu);on('gear',()=>showGear());on('run',runAway);on('install',install);
+ document.querySelectorAll('.az[data-z]').forEach(b=>b.onclick=()=>{G.tgt=+b.dataset.z;renderEnc()});
+ if(G._hurt||fx.shake){const sc=$('.scene');sc.classList.add('shake');}G._hurt=0;
  document.querySelectorAll('.wsel button').forEach(b=>b.onclick=()=>{G.wsel=b.dataset.w;save();renderEnc()});
  document.querySelectorAll('.spot').forEach(b=>b.onclick=()=>{const s=room.spots[+b.dataset.s];if(!s.open)search(+b.dataset.s);else if(s.loot.length)reveal(s,room,1)});
  save();}
 function endTurn(room,nz){if(G.over)return;G.noise=clamp(G.noise+nz,0,100);
  for(const z of room.z){if(!z.aw&&Math.random()*100<10+nz*1.4+G.noise*.12){z.aw=1;addLog(`The ${ZT[z.t].n.toLowerCase()} notices you!`,'bad')}}
- const ar=armor();for(const z of room.z)if(z.aw){if(z.stun){z.stun=0;continue}const T=ZT[z.t];if(Math.random()*100<T.hit){const d=Math.max(1,Math.round(zdmg(z)*(.8+Math.random()*.4)-ar*.35));G.hp-=d;addLog(`${T.n} hits you for ${d}.`,'bad')}else addLog(`${T.n} grabs at you and misses.`)}
+ const ar=armor();G.tt=(G.tt||0)+1;const h0=G.hp;for(const z of room.z)if(z.aw){if(z.stun){z.stun=0;continue}const T=ZT[z.t];if(zd(z)>1){const st=z.t==='runner'?2:z.t==='crawler'?(G.tt%2):1;z.d=Math.max(1,z.d-st);continue}if(Math.random()*100<T.hit){const d=Math.max(1,Math.round(zdmg(z)*(.8+Math.random()*.4)-ar*.35));G.hp-=d;addLog(`${T.n} hits you for ${d}.`,'bad')}else addLog(`${T.n} grabs at you and misses.`)}
  G.hun=clamp(G.hun+.35,0,100);tick();
  if(!room.amb&&!room.wave&&(room.z.length||room.spots.some(s=>!s.open))&&(room.sp||0)<2){room.clock-=1+(nz>15?1:0);if(room.clock<=0){room.clock=R(5,8);room.sp=(room.sp||0)+1;const L=LOC[G.at];const t=pick(L.z);const loud=G.noise>45;room.z.push(Object.assign(mkZ(t),{aw:loud?1:0}));addLog(`A ${ZT[t].n.toLowerCase()} shuffles in${loud?', drawn by the noise':''}.`,'bad')}}
- if(G.hp<=0)return die(`Killed by the dead in ${G.amb?'a roadside ambush':LOC[G.at].n} on day ${G.day}.`);}
-function fight(aim){const room=curRoom();const z=room.z[0];if(!z)return;const w=wStats(G.wsel);
+ G._hurt=G.hp<h0;if(G.hp<=0)return die(`Killed by the dead in ${G.amb?'a roadside ambush':LOC[G.at].n} on day ${G.day}.`);}
+function brace(){const room=curRoom();G.br=1;addLog('You plant your feet and wait for them to come to you. +15% on your next swing.');endTurn(room,0);if(!G.over)renderEnc()}
+function killZ(room,z,fx){const i=room.z.indexOf(z);if(i<0)return;room.z.splice(i,1);fx.dead=(fx.dead||[]).concat([{t:z.t,d:z.d,ln:z.ln}]);G.kills++;addLog(`The ${ZT[z.t].n.toLowerCase()} drops.`,'good');if(Math.random()<.25){const s=R(1,2);G.scrap+=s;addLog(`You pocket ${s} scrap from its pockets.`)}if(Math.random()<.1){G.cells++;addLog('It had a battery in its jacket. +1 battery.','good')}if(G.tgt>=room.z.length||i===G.tgt)G.tgt=-1;ach()}
+function after(room,fx){if(G.over)return;if(room.amb&&!room.z.length){addLog('You clear the road. The birds start singing again.','good');clearAmb();toast('Survived the ambush');return showMap()}
+ if(G.final&&G.at==='tower'&&!room.z.length){G.final++;if(G.final>4)return win();G.hp=clamp(G.hp+12,0,100);toast('Wave cleared · +12 HP');return wave()}
+ renderEnc(fx)}
+function molotov(){const room=curRoom();const z=tgtZ(room);const m=G.inv.find(i=>i.id==='molotov');if(!z||!m)return;G.inv.splice(G.inv.indexOf(m),1);const fx={pops:[]};const c=zd(z);
+ addLog('You hurl a molotov. WHOOMPH.','good');for(const o of room.z.slice()){if(Math.abs(zd(o)-c)<=1){const d=R(24,34);o.hp-=d;o.aw=1;fx.pops.push({d:o.d,ln:o.ln,t:'-'+d,c:'fire'});if(o.hp<=0)killZ(room,o,fx)}}
+ fx.shake=1;endTurn(room,12);after(room,fx)}
+function fight(aim){const room=curRoom();const z=tgtZ(room);if(!z)return;const w=wStats(G.wsel);
+ if(meleeFar(z,G.wsel))return brace();
+ if(!w.am&&!z.aw&&zd(z)>1){z.d=1;addLog(`You creep up on the ${ZT[z.t].n.toLowerCase()}...`)}
  if(w.am&&ammoOf(w.am)<1)return toast('No ammo');
- let dealt=0;const sneakA=!z.aw&&!w.am;for(let b=0;b<w.burst;b++){if(w.am){if(ammoOf(w.am)<1)break;useAmmo(w.am,1)}if(Math.random()*100<hitPct(z,G.wsel)-(aim?20:0)){dealt+=w.dmg*(.8+Math.random()*.4)*(sneakA?2:1)*(aim?1.8:1)}}
- dealt=Math.round(dealt);z.hp-=dealt;
+ let dealt=0;const sneakA=!z.aw&&!w.am;for(let b=0;b<w.burst;b++){if(w.am){if(ammoOf(w.am)<1)break;useAmmo(w.am,1)}if(Math.random()*100<hitPct(z,G.wsel)-(aim?20:0)){G.br=0;dealt+=w.dmg*(.8+Math.random()*.4)*(sneakA?2:1)*(aim?1.8:1)}}
+ dealt=Math.round(dealt);z.hp-=dealt;G.br=0;const fx={pops:[{d:z.d,ln:z.ln,t:dealt?'-'+dealt:'miss',c:dealt?(aim?'crit':''):'miss'}],flash:dealt?1:0,shot:!!w.am};
  if(dealt)addLog(`${sneakA?'Sneak attack! ':''}${aim?'Headshot! ':''}You hit the ${ZT[z.t].n.toLowerCase()} for ${dealt}.`);else addLog('You miss.','bad');
  for(const o of room.z)if(w.nz>15&&Math.random()<.7)o.aw=1; z.aw=1;
- let killed=false;if(z.hp<=0){room.z.shift();G.kills++;killed=true;addLog(`The ${ZT[z.t].n.toLowerCase()} drops.`,'good');if(Math.random()<.25){const s=R(1,2);G.scrap+=s;addLog(`You pocket ${s} scrap from its pockets.`)}if(Math.random()<.1){G.cells++;addLog('It had a battery in its jacket. +1 battery.','good')}ach('kills')}
- endTurn(room,w.nz);if(G.over)return;
- if(room.amb&&!room.z.length){addLog('You clear the road. The birds start singing again.','good');clearAmb();toast('Survived the ambush');return showMap()}
- if(G.final&&G.at==='tower'&&!room.z.length){G.final++;if(G.final>4)return win();G.hp=clamp(G.hp+12,0,100);toast('Wave cleared · +12 HP');return wave()}
- renderEnc({hit:killed?-1:0})}
-function shove(){const room=curRoom();const z=room.z.find(z=>z.aw&&!z.stun)||room.z[0];if(!z)return;z.aw=1;z.stun=1;addLog(`You shove the ${ZT[z.t].n.toLowerCase()} into the wall. It staggers.`);endTurn(room,1);if(!G.over)renderEnc()}
+ if(z.hp<=0)killZ(room,z,fx);
+ endTurn(room,w.nz);after(room,fx)}
+function shove(){const room=curRoom();const z=room.z.find(z=>z.aw&&!z.stun&&zd(z)<=1)||tgtZ(room);if(!z)return;z.aw=1;z.stun=1;z.d=Math.min(5,zd(z)+1);addLog(`You shove the ${ZT[z.t].n.toLowerCase()} into the wall. It staggers.`);endTurn(room,1);if(!G.over)renderEnc()}
 function clearAmb(){const h=G.hordes[G.amb.hi];if(h){h.e=R(0,EDGES.length-1);h.p=.5}G.amb=null;save()}
-function runAway(){const room=curRoom();if(Math.random()*100<sneakOdds(room)){addLog('You break through the horde and run.','good')}else{const ar=armor();let d=0;for(const z of room.z)d+=Math.max(1,zdmg(z)-ar*.35);d=Math.round(d);G.hp-=d;addLog(`They claw at you as you run. -${d} HP.`,'bad');if(G.hp<=0)return die('Dragged down on the open road on day '+G.day+'.')}
+function runAway(){const room=curRoom();if(Math.random()*100<sneakOdds(room)){addLog('You break through the horde and run.','good')}else{const ar=armor();let d=0;for(const z of room.z)d+=Math.max(1,zdmg(z)-ar*.35);d=Math.round(d);const h0=G.hp;G.hp-=d;addLog(`They claw at you as you run. -${d} HP.`,'bad');if(G.hp<=0&&h0>=8){G.hp=R(1,4);addLog('You tumble into a ditch and crawl clear. Alive!','good')}if(G.hp<=0)return die('Dragged down on the open road on day '+G.day+'.')}
  G.amb=null;save();showMap()}
 function sneak(){const room=curRoom();const l=G.locs[G.at];if(Math.random()*100<sneakOdds(room)){addLog('You tiptoe past. Years of dodging your manager pay off.','good');l.cur++;G.noise=clamp(G.noise+2,0,100);tick();save();renderEnc()}else{for(const z of room.z)z.aw=1;addLog('A board creaks. They turn toward you!','bad');endTurn(room,6);if(!G.over)renderEnc()}}
 function leave(){const room=curRoom();if(room.z.some(z=>z.aw)){const ar=armor();const h0=G.hp;for(const z of room.z)if(z.aw&&!z.stun&&Math.random()<.5){const d=Math.max(1,Math.round(zdmg(z)-ar*.35));G.hp-=d;addLog(`${ZT[z.t].n} catches you on the way out. -${d}`,'bad')}if(G.hp<=0&&h0>=8){G.hp=R(1,4);addLog('You dive through a window and limp away. Alive!','good')}if(G.hp<=0)return die('Cut off while retreating from '+LOC[G.at].n+'.')}
