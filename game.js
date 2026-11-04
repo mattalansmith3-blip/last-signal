@@ -144,6 +144,7 @@ function rest(){const home=G.at==='suburbs';const starving=G.hun>=75&&!(home&&G.
  if(Math.random()<.35)shiftHordes(1);toast('Rested · +'+heal+' HP');showMap()}
 const ACH={kills:['First Blood',g=>g.kills>=1],k50:['Zombie Janitor',g=>g.kills>=50],part:['Spark of Hope',g=>g.installed>=1],half:['Halfway Home',g=>g.installed>=6],rich:['Scrap Baron',g=>g.scrap>=60],safe:['Homebody',g=>Object.keys(g.safe||{}).length>=2],leg:['Shiny!',g=>Object.values(g.eq).some(i=>i&&i.r>=4)]};
 function ach(){if(!G)return;const m=META;m.ach=m.ach||{};for(const k in ACH)if(!m.ach[k]&&ACH[k][1](G)){m.ach[k]=1;saveMeta();toast('🏆 '+ACH[k][0])}}
+function roomBg(n,d){return /Store|Food Court|Mall|Pharmacy/.test(n)?'bg_market.webp':/House|Garage|Basement|Office|Locker/.test(n)?'bg_house.webp':'bg_'+d+'.jpg'}
 function eatBest(){const f=G.inv.filter(i=>ITEMS[i.id].u==='food').sort((a,b)=>Math.abs(ITEMS[a.id].v-G.hun)-Math.abs(ITEMS[b.id].v-G.hun))[0];if(!f)return;G.inv.splice(G.inv.indexOf(f),1);G.hun=clamp(G.hun-ITEMS[f.id].v,0,100);if(ITEMS[f.id].hp)G.hp=clamp(G.hp+ITEMS[f.id].hp,0,100);addLog(`You eat the ${ITEMS[f.id].n}.`,'good');save();showMap()}
 function forage(){passTime(2);if(G.over)return;const r=Math.random();
  if(r<.62){const id=pick(['can','bar','bar','water','water']);if(invCount()<capacity()){G.inv.push(mk(id));addLog(`You forage the overgrown yards and find: ${ITEMS[id].n}.`,'good');toast('Found '+ITEMS[id].n)}else{G.hun=clamp(G.hun-ITEMS[id].v,0,100);addLog(`You find ${ITEMS[id].n} and eat it on the spot.`,'good')}}
@@ -183,7 +184,7 @@ function renderEnc(fx){const room=curRoom();const L=LOC[G.at];const l=G.locs[G.a
  const logs=G.log.slice(-14).map(([t,c])=>`<p class="${c}">${t}</p>`).join('');
  const ammoOk=!ws0.am||ammoOf(ws0.am)>0;const parts=G.inv.filter(i=>ITEMS[i.id].p).length;
  const odds=t0?`<div class="odds">Hit <b>${ammoOk?hitPct(t0,G.wsel):0}%</b> · ${Math.round(ws0.dmg*.8*((!t0.aw&&!ws0.am)?2:1))}–${Math.round(ws0.dmg*1.2*((!t0.aw&&!ws0.am)?2:1))}${ws0.burst>1?'×'+ws0.burst:''} dmg vs ${Math.round(t0.hp)}hp → <b>${hitsToKill(t0,G.wsel)} hit${hitsToKill(t0,G.wsel)>1?'s':''}</b><br>Incoming ~<b style="color:#c0392b">${inc.toFixed(1)}</b>/turn · Sneak <b>${sneakOdds(room)}%</b>${!t0.aw&&ws0.am?' · <span style="color:#b3321f">gunfire wakes the room</span>':''}</div>`:'';
- $('#app').innerHTML=`<div class="screen" id="enc">${hud()}<div class="scene" style="background-image:linear-gradient(#3a230f55,#0000 25%,#0000 75%,#3a230f66),url(img/bg_${G.amb?'road':L.bg}.jpg);background-position:${G.amb?50:(l.cur*23)%100}% 50%">
+ $('#app').innerHTML=`<div class="screen" id="enc">${hud()}<div class="scene" style="background-image:linear-gradient(#3a230f55,#0000 25%,#0000 75%,#3a230f66),url(img/${G.amb?'bg_road.jpg':roomBg(room.n,L.bg)});background-position:${G.amb?50:(l.cur*23)%100}% 50%">
  <div class="roomtitle">${G.amb?'Ambush!':L.n}<small>${room.n}${G.amb?'':' · room '+(l.cur+1)+'/'+l.rooms.length}${room.z.length&&!G.amb&&!room.wave?' · more arrive in '+room.clock+' turns':''}</small></div>
  <div class="spots">${sp}</div><div class="zs">${zs}</div></div>
  <div class="side panel"><div class="log" id="log">${logs}</div>
