@@ -9,7 +9,7 @@ const DEADLINE=21;
 let G=null, META=JSON.parse(localStorage.getItem('ls_meta')||'{"pts":0,"runs":0,"best":0,"wins":0,"journal":[]}');META.tips=META.tips||{};META.hist=META.hist||[];
 let uid=1;
 const saveMeta=()=>localStorage.setItem('ls_meta',JSON.stringify(META));
-const save=()=>{if(G&&!G.over)localStorage.setItem('ls_run',JSON.stringify(G));};
+const save=()=>{if(G&&!G.over){localStorage.setItem('ls_run',JSON.stringify(G));ach()}};
 const isGear=it=>!!ITEMS[it.id].s;
 function mk(id,r,depth){const d=ITEMS[id];if(r==null||!d.s)r=d.s?d.t:(d.p?3:0);const it={id,r,u:uid++};if(d.a||d.sc)it.q=Math.round(R(d.q[0],d.q[1])*(1+(depth||0)*.15));return it;}
 function st(it,k){const d=ITEMS[it.id];const v=d[k]||0;if(k==='dmg'||k==='ar')return Math.round(v*RMUL[it.r]);if(k==='cap')return v?v+(d.s==='back'?it.r*2:0):0;return v;}
@@ -103,7 +103,7 @@ function showTitle(){const has=localStorage.getItem('ls_run');
  const hist=META.hist.slice(0,3).map(h=>`<div>${h}</div>`).join('');
  $('#app').innerHTML=`<div class="screen" id="title"><h1>LAST SIGNAL</h1><div class="sub">The world ended. So did rent, rush hour and Monday meetings.<br>The tower on Echo Hill can still reach the others. Find twelve radio parts and send the signal before day ${DEADLINE}.</div>
  <div class="menu">${has?'<button class="btn hot" id="cont">Continue Run</button>':''}<button class="btn ${has?'':'hot'}" id="new">New Run</button></div>
- <div class="legacy">Journal: ${META.pts} pts · Runs ${META.runs} · Best signal ${META.best}/12 · Rescues ${META.wins}${hist?'<div class="hist">'+hist+'</div>':''}</div></div>`;
+ <div class="legacy">Journal: ${META.pts} pts · Runs ${META.runs} · Best signal ${META.best}/12 · Rescues ${META.wins} · 🏆 ${Object.keys(META.ach||{}).length}/${Object.keys(ACH).length}${hist?'<div class="hist">'+hist+'</div>':''}</div></div>`;
  if(has)$('#cont').onclick=()=>{G=JSON.parse(has);uid=1e6+Date.now()%1e6;resume()};
  $('#new').onclick=()=>ov(`<h2>Choose your start</h2><p>Each run writes to your journal and unlocks better starts.</p><div class="row">${kits}</div><div class="row"><button class="btn" id="x">Back</button></div>`);
  $('#ov').onclick=e=>{const k=e.target.closest('[data-kit]');if(k&&!k.disabled){closeOv();newRun(+k.dataset.kit)}if(e.target.id==='x')closeOv()};}
@@ -142,6 +142,8 @@ function rest(){const home=G.at==='suburbs';const starving=G.hun>=75&&!(home&&G.
  const risk=home?.06*(1-(G.safe.bar||0)*.45):.28+G.noise/200;
  if(Math.random()<risk){const d=R(6,14)+G.day;G.hp-=d;addLog(`Something found your hideout. -${d} HP.`,'bad');if(G.hp<=0)return die('Overrun while sleeping on day '+G.day+'.')}
  if(Math.random()<.35)shiftHordes(1);toast('Rested · +'+heal+' HP');showMap()}
+const ACH={kills:['First Blood',g=>g.kills>=1],k50:['Zombie Janitor',g=>g.kills>=50],part:['Spark of Hope',g=>g.installed>=1],half:['Halfway Home',g=>g.installed>=6],rich:['Scrap Baron',g=>g.scrap>=60],safe:['Homebody',g=>Object.keys(g.safe||{}).length>=2],leg:['Shiny!',g=>Object.values(g.eq).some(i=>i&&i.r>=4)]};
+function ach(){if(!G)return;const m=META;m.ach=m.ach||{};for(const k in ACH)if(!m.ach[k]&&ACH[k][1](G)){m.ach[k]=1;saveMeta();toast('🏆 '+ACH[k][0])}}
 function eatBest(){const f=G.inv.filter(i=>ITEMS[i.id].u==='food').sort((a,b)=>Math.abs(ITEMS[a.id].v-G.hun)-Math.abs(ITEMS[b.id].v-G.hun))[0];if(!f)return;G.inv.splice(G.inv.indexOf(f),1);G.hun=clamp(G.hun-ITEMS[f.id].v,0,100);if(ITEMS[f.id].hp)G.hp=clamp(G.hp+ITEMS[f.id].hp,0,100);addLog(`You eat the ${ITEMS[f.id].n}.`,'good');save();showMap()}
 function forage(){passTime(2);if(G.over)return;const r=Math.random();
  if(r<.62){const id=pick(['can','bar','bar','water','water']);if(invCount()<capacity()){G.inv.push(mk(id));addLog(`You forage the overgrown yards and find: ${ITEMS[id].n}.`,'good');toast('Found '+ITEMS[id].n)}else{G.hun=clamp(G.hun-ITEMS[id].v,0,100);addLog(`You find ${ITEMS[id].n} and eat it on the spot.`,'good')}}
@@ -187,7 +189,7 @@ function renderEnc(fx){const room=curRoom();const L=LOC[G.at];const l=G.locs[G.a
  <div class="side panel"><div class="log" id="log">${logs}</div>
  ${room.z.length?`<div class="wsel">${ws}</div>${odds}`:''}
  <div class="acts">
- ${room.z.length?`<button class="btn hot" id="fight" ${ammoOk?'':'disabled'}>Fight<small>${ammoOk?ZT[t0.t].n:'no ammo'}</small></button><button class="btn" id="shove">Shove<small>daze it, no damage</small></button>`:''}
+ ${room.z.length?`<button class="btn hot" id="fight" ${ammoOk?'':'disabled'}>Fight<small>${ammoOk?ZT[t0.t].n:'no ammo'}</small></button><button class="btn" id="aim" ${ammoOk?'':'disabled'}>Aimed<small>−20% hit · ×1.8 dmg</small></button><button class="btn" id="shove">Shove<small>daze it, no damage</small></button>`:''}
  ${room.spots.some(s=>!s.open)?`<button class="btn ${room.z.length?'':'hot'}" id="search">Search<small>${room.spots.filter(s=>!s.open).length} container(s)</small></button>`:''}
  ${G.amb?`<button class="btn" id="run">Run<small>${sneakOdds(room)}% clean</small></button>`:(!last?(clear?`<button class="btn ${room.spots.some(s=>!s.open)?'':'hot'}" id="next">Next Room<small>${l.rooms[l.cur+1].n}</small></button>`:`<button class="btn" id="sneak">Sneak Past<small>${sneakOdds(room)}%</small></button>`):'')}
  ${L.tower&&!G.amb&&clear&&last?`<button class="btn hot" id="install" ${G.installed<12&&!parts?'disabled':''}>${G.installed>=12?'Broadcast':'Install Parts'}<small>${G.installed>=12?'hold the hill':parts+' in pack'}</small></button>`:''}
@@ -197,7 +199,7 @@ function renderEnc(fx){const room=curRoom();const L=LOC[G.at];const l=G.locs[G.a
  </div></div></div>`;
  const lg=$('#log');lg.scrollTop=lg.scrollHeight;
  const on=(id,f)=>{const e=$('#'+id);if(e)e.onclick=f};
- on('fight',fight);on('shove',shove);on('search',()=>search(room.spots.findIndex(s=>!s.open)));on('next',()=>{l.cur++;addLog('You move on: '+curRoom().n+'.');save();renderEnc()});on('back',()=>{l.cur--;save();renderEnc()});
+ on('fight',()=>fight());on('aim',()=>fight(1));on('shove',shove);on('search',()=>search(room.spots.findIndex(s=>!s.open)));on('next',()=>{l.cur++;addLog('You move on: '+curRoom().n+'.');save();renderEnc()});on('back',()=>{l.cur--;save();renderEnc()});
  on('sneak',sneak);on('leave',leave);on('items',useMenu);on('gear',()=>showGear());on('run',runAway);on('install',install);
  document.querySelectorAll('.wsel button').forEach(b=>b.onclick=()=>{G.wsel=b.dataset.w;save();renderEnc()});
  document.querySelectorAll('.spot').forEach(b=>b.onclick=()=>{const s=room.spots[+b.dataset.s];if(!s.open)search(+b.dataset.s);else if(s.loot.length)reveal(s,room,1)});
@@ -208,13 +210,13 @@ function endTurn(room,nz){if(G.over)return;G.noise=clamp(G.noise+nz,0,100);
  G.hun=clamp(G.hun+.35,0,100);tick();
  if(!room.amb&&!room.wave&&(room.z.length||room.spots.some(s=>!s.open))&&(room.sp||0)<2){room.clock-=1+(nz>15?1:0);if(room.clock<=0){room.clock=R(5,8);room.sp=(room.sp||0)+1;const L=LOC[G.at];const t=pick(L.z);const loud=G.noise>45;room.z.push(Object.assign(mkZ(t),{aw:loud?1:0}));addLog(`A ${ZT[t].n.toLowerCase()} shuffles in${loud?', drawn by the noise':''}.`,'bad')}}
  if(G.hp<=0)return die(`Killed by the dead in ${G.amb?'a roadside ambush':LOC[G.at].n} on day ${G.day}.`);}
-function fight(){const room=curRoom();const z=room.z[0];if(!z)return;const w=wStats(G.wsel);
+function fight(aim){const room=curRoom();const z=room.z[0];if(!z)return;const w=wStats(G.wsel);
  if(w.am&&ammoOf(w.am)<1)return toast('No ammo');
- let dealt=0;const sneakA=!z.aw&&!w.am;for(let b=0;b<w.burst;b++){if(w.am){if(ammoOf(w.am)<1)break;useAmmo(w.am,1)}if(Math.random()*100<hitPct(z,G.wsel)){dealt+=w.dmg*(.8+Math.random()*.4)*(sneakA?2:1)}}
+ let dealt=0;const sneakA=!z.aw&&!w.am;for(let b=0;b<w.burst;b++){if(w.am){if(ammoOf(w.am)<1)break;useAmmo(w.am,1)}if(Math.random()*100<hitPct(z,G.wsel)-(aim?20:0)){dealt+=w.dmg*(.8+Math.random()*.4)*(sneakA?2:1)*(aim?1.8:1)}}
  dealt=Math.round(dealt);z.hp-=dealt;
- if(dealt)addLog(`${sneakA?'Sneak attack! ':''}You hit the ${ZT[z.t].n.toLowerCase()} for ${dealt}.`);else addLog('You miss.','bad');
+ if(dealt)addLog(`${sneakA?'Sneak attack! ':''}${aim?'Headshot! ':''}You hit the ${ZT[z.t].n.toLowerCase()} for ${dealt}.`);else addLog('You miss.','bad');
  for(const o of room.z)if(w.nz>15&&Math.random()<.7)o.aw=1; z.aw=1;
- let killed=false;if(z.hp<=0){room.z.shift();G.kills++;killed=true;addLog(`The ${ZT[z.t].n.toLowerCase()} drops.`,'good');if(Math.random()<.25){const s=R(1,2);G.scrap+=s;addLog(`You pocket ${s} scrap from its pockets.`)}}
+ let killed=false;if(z.hp<=0){room.z.shift();G.kills++;killed=true;addLog(`The ${ZT[z.t].n.toLowerCase()} drops.`,'good');if(Math.random()<.25){const s=R(1,2);G.scrap+=s;addLog(`You pocket ${s} scrap from its pockets.`)}if(Math.random()<.1){G.cells++;addLog('It had a battery in its jacket. +1 battery.','good')}ach('kills')}
  endTurn(room,w.nz);if(G.over)return;
  if(room.amb&&!room.z.length){addLog('You clear the road. The birds start singing again.','good');clearAmb();toast('Survived the ambush');return showMap()}
  if(G.final&&G.at==='tower'&&!room.z.length){G.final++;if(G.final>4)return win();G.hp=clamp(G.hp+12,0,100);toast('Wave cleared · +12 HP');return wave()}
